@@ -130,13 +130,11 @@ describe('PTRN', function() {
 
   describe('fib', function() {
     beforeEach(function() {
-      const fib = n => {
-        return P(
-          [0,        () => 0],
-          [1,        () => 1],
-          [P.P('n'), r => fib(r.n - 1) + fib(r.n - 2)]
-        )(n);
-      }
+      const fib = P(
+        [0,        () => 0],
+        [1,        () => 1],
+        [P.P('n'), r => fib(r.n - 1) + fib(r.n - 2)]
+      );
 
       this.subject = fib;
     });
@@ -148,5 +146,46 @@ describe('PTRN', function() {
     it('should compute 55', function() {
       expect(this.subject(10)).to.eql(55);
     });
-  })
+  });
+
+  describe('array sum', function() {
+    beforeEach(function() {
+      const sum = P(
+        [[],                       () => 0],
+        [P.HT(P.P('h'), P.P('t')), r => r.h + sum(r.t)]
+      );
+
+      this.subject = sum;
+    });
+
+    it('should eq 10', function() {
+      expect(this.subject([1, 2, 3, 4])).to.eql(10);
+    });
+  });
+
+  describe('tree sum', function() {
+    beforeEach(function() {
+      const sum = P(
+        [{ left: P.P('l'), right: P.P('r') }, r => sum(r.l) + sum(r.r)],
+        [P.P('n'),                            r => r.n]
+      );
+
+      this.subject = sum;
+    });
+
+    it('should eq 100', function() {
+      const tree = {
+        left: {
+          left: 10,
+          right: {
+            left: 20,
+            right: 30
+          }
+        },
+        right: 40
+      }
+
+      expect(this.subject(tree)).to.eql(100);
+    });
+  });
 });
