@@ -8,18 +8,33 @@ const _ = require('lodash');
 
 describe('PTRN', function() {
   beforeEach(function() {
-    const handlerNames = ['text', 'wild', 'num', 'headTail', 'obj'];
+    const handlerNames = ['text', 'wild', 'num', 'headTail', 'obj', 'nan', 'blankList', 'array', 'arrInObj', 'doubleTail'];
 
     this.cb = _.reduce(handlerNames, (acc, m) => {
       return _.merge({}, acc, { [m]: sinon.spy() });
     }, {});
 
     this.matcher = P(
-      ['text',                     this.cb.text],
-      [1,                          this.cb.num],
-      [[P.P('head'), P.T('tail')], this.cb.headTail],
-      [{ x: 1, y: 2 },             this.cb.obj],
-      [P._,                        this.cb.wild]
+      ['text',                         this.cb.text],
+      [1,                              this.cb.num],
+      [NaN,                            this.cb.nan],
+      [[1, P.P('two'), 3],             this.cb.array],
+      [
+        P.HT(P._, P.HT(P._, [[3, { wow: P.P('nested') }], 4])),
+        this.cb.doubleTail
+      ],
+      [P.HT(P.P('head'), P.P('tail')), this.cb.headTail],
+      [[],                             this.cb.blankList],
+      [{ x: 1, y: 2 },                 this.cb.obj],
+
+      [
+        {
+          x: P.HT({ wow: P.P('nested') }, P._)
+        },
+        this.cb.arrInObj
+      ],
+
+      [P._,                            this.cb.wild]
     );
 
     this.expectOnly = (s) => {
@@ -64,12 +79,9 @@ describe('PTRN', function() {
     expect(args.tail).to.eql([]);
   });
 
-  it('should call headTail', function() {
-    const args = this.matchAndExpectOnly([], 'wild');
+  it('should call wild', function() {
+    const args = this.matchAndExpectOnly([], 'blankList');
     expect(_.keys(args)).to.eql([]);
-    // expect(_.keys(args)).to.eql(['head', 'tail']);
-    // expect(args.head).to.be.undefined;
-    // expect(args.tail).to.eql([]);
   });
 
   it('should call obj', function() {
@@ -90,5 +102,29 @@ describe('PTRN', function() {
 
   it('should call obj', function() {
     this.matchAndExpectOnly({ x: 1, y: 2, z: 3 }, 'obj');
+  });
+
+  it('should call nan', function() {
+    this.matchAndExpectOnly(NaN, 'nan');
+  });
+
+  it('should call array', function() {
+    const args = this.matchAndExpectOnly([1, 2, 3], 'array');
+    expect(_.keys(args)).to.eql(['two']);
+    expect(args.two).to.eql(2);
+  });
+
+  it('should call arrInObj', function() {
+    const target = { x: [{ wow: 'Ok' }, 1, 2, 3] };
+    const args = this.matchAndExpectOnly(target, 'arrInObj');
+    expect(_.keys(args)).to.eql(['nested']);
+    expect(args.nested).to.eql('Ok');
+  });
+
+  it('should call doubleTail', function() {
+    const target = [1, 2, [3, { wow: 'Ok' }], 4];
+    const args = this.matchAndExpectOnly(target, 'doubleTail');
+    expect(_.keys(args)).to.eql(['nested']);
+    expect(args.nested).to.eql('Ok');
   });
 });
