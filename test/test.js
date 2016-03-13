@@ -127,4 +127,26 @@ describe('PTRN', function() {
     expect(_.keys(args)).to.eql(['nested']);
     expect(args.nested).to.eql('Ok');
   });
+
+  describe('fib', function() {
+    beforeEach(function() {
+      const fib = n => {
+        return P(
+          [0,        () => 0],
+          [1,        () => 1],
+          [P.P('n'), r => fib(r.n - 1) + fib(r.n - 2)]
+        )(n);
+      }
+
+      this.subject = fib;
+    });
+
+    it('should compute 5', function() {
+      expect(this.subject(5)).to.eql(5);
+    });
+
+    it('should compute 55', function() {
+      expect(this.subject(10)).to.eql(55);
+    });
+  })
 });
